@@ -65,22 +65,33 @@ app.use((req, res, next) => {
 
 
 app.get('/', (req, res) => {
-    knex('assignment')
-  .innerJoin('class', 'class.classcode', 'assignment.classcode')
-  .select(
-    'class.classcode',                   // Gets classcode, classname, teacher
-    'class.classname',                   
-    'class.teacher',                   
-    'assignment.assignid',       // Explicitly list assignment columns...
-    'assignment.assignmentname',
-    'assignment.duedate',
-    'assignment.assigntype',
-    'assignment.done'
-    // ...but SKIP assignment.classcode
-  ).orderBy('assignment.duedate', 'asc')
-    .then(rows => {
-        res.render('index', {schooldata: rows});
-    });
+    const showAll = req.query.showAll === '1' || req.query.showAll === 'true';
+
+    let query = knex('assignment')
+        .innerJoin('class', 'class.classcode', 'assignment.classcode')
+        .select(
+            'class.classcode',
+            'class.classname',
+            'class.teacher',
+            'assignment.assignid',
+            'assignment.assignmentname',
+            'assignment.duedate',
+            'assignment.assigntype',
+            'assignment.done'
+        );
+
+    if (!showAll) {
+        query = query.where('assignment.done', false);
+    }
+
+    query.orderBy('assignment.duedate', 'asc')
+        .then(rows => {
+            res.render('index', { schooldata: rows, showAll });
+        })
+        .catch(err => {
+            console.error('Error fetching assignments:', err);
+            res.status(500).send('Error fetching assignments');
+        });
 });
 
 
