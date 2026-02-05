@@ -86,7 +86,7 @@ app.get('/', (req, res) => {
 
     query.orderBy('assignment.duedate', 'asc')
         .then(rows => {
-            res.render('index', { schooldata: rows, showAll });
+            res.render('index', { schooldata: rows, showAll, selectedClassCode: null, selectedAssignType: null });
         })
         .catch(err => {
             console.error('Error fetching assignments:', err);
@@ -172,7 +172,7 @@ app.get('/filter-code', (req, res) => {
 
     query
         .then(rows => {
-            res.render('index', { schooldata: rows });
+            res.render('index', { schooldata: rows, selectedClassCode: code, selectedAssignType: null, showAll: false });
         })
         .catch(err => {
             console.error('Error filtering by class code:', err);
@@ -198,7 +198,7 @@ app.get('/filter-assigntype', (req, res) => {
         .where('assignment.assigntype', filteredtype)
         .orderBy('assignment.duedate', 'asc')
         .then(rows => {
-            res.render('index', { schooldata: rows });
+            res.render('index', { schooldata: rows, selectedClassCode: null, selectedAssignType: filteredtype, showAll: false });
         })
         .catch(err => {
             console.error('Error filtering by assignment type:', err);
@@ -207,7 +207,21 @@ app.get('/filter-assigntype', (req, res) => {
 });
 
 
+app.post('/delete-assign/:id', (req, res) => {
+    let id = req.params.id;
+    knex('assignment')
+    .where('assignid', id)
+    .del()
+    .then(() => {
+        console.log(`Assignment ${id} deleted successfully.`);
+        res.redirect('/');
+    })
+    .catch(err => {
+        console.error(err);
+    });
 
+
+});
 
 
 
