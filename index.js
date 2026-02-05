@@ -147,7 +147,64 @@ app.post('/add-assignment', (req, res) => {
 
 
 
+app.get('/filter-code', (req, res) => {
+    const code = req.query.classcodefilter;
 
+    let query = knex('assignment')
+        .leftJoin('class', 'class.classcode', 'assignment.classcode')
+        .select(
+            'class.classcode',
+            'class.classname',
+            'class.teacher',
+            'assignment.assignid',
+            'assignment.assignmentname',
+            'assignment.duedate',
+            'assignment.assigntype',
+            'assignment.done'
+        )
+        .orderBy('assignment.duedate', 'asc');
+
+    if (code === 'Other') {
+        query = query.whereNull('assignment.classcode');
+    } else {
+        query = query.where('class.classcode', code);
+    }
+
+    query
+        .then(rows => {
+            res.render('index', { schooldata: rows });
+        })
+        .catch(err => {
+            console.error('Error filtering by class code:', err);
+            res.status(500).send('Error filtering assignments');
+        });
+});
+
+app.get('/filter-assigntype', (req, res) => {
+    const filteredtype = req.query.assigntypefilter;
+
+    knex('assignment')
+        .leftJoin('class', 'class.classcode', 'assignment.classcode')
+        .select(
+            'class.classcode',
+            'class.classname',
+            'class.teacher',
+            'assignment.assignid',
+            'assignment.assignmentname',
+            'assignment.duedate',
+            'assignment.assigntype',
+            'assignment.done'
+        )
+        .where('assignment.assigntype', filteredtype)
+        .orderBy('assignment.duedate', 'asc')
+        .then(rows => {
+            res.render('index', { schooldata: rows });
+        })
+        .catch(err => {
+            console.error('Error filtering by assignment type:', err);
+            res.status(500).send('Error filtering assignments');
+        });
+});
 
 
 

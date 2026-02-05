@@ -10,8 +10,9 @@
     <div class="container py-4">
         <h1 class="text-center mb-4">School Organizer</h1>
 
-        <div class="d-flex justify-content-center mb-3">
+        <div class="d-flex justify-content-center gap-2 mb-3">
             <button id="showAddAssignmentBtn" class="btn btn-primary">Add Assignment</button>
+            <button id="showFiltersBtn" class="btn btn-outline-secondary">Filters</button>
         </div>
 
         <div class="d-flex justify-content-center mb-3">
@@ -22,11 +23,12 @@
             </form>
         </div>
 
+        <!-- Add Assignment Card (hidden by default) -->
         <div id="addAssignmentCard" class="card mb-4 mx-auto shadow-sm" style="display: none; max-width: 800px;">
             <div class="card-body">
-                <h5 class="card-title text-center">Add New Assignment</h5>
+                <h5 class="card-title">Add New Assignment</h5>
                 <form action="/add-assignment" method="POST" class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label for="classcode" class="form-label">Class Code</label>
                         <select id="classcode" name="classcode" class="form-select" required>
                             <option value="IS 401">IS 401</option>
@@ -37,11 +39,7 @@
                             <option value="Other">Other</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label for="assignmentname" class="form-label">Assignment Name</label>
-                        <input type="text" id="assignmentname" name="assignmentname" class="form-control" placeholder="e.g., Homework 3" required>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label for="assigntype" class="form-label">Type</label>
                         <select id="assigntype" name="assigntype" class="form-select" required>
                             <option value="Homework">Homework</option>
@@ -52,17 +50,61 @@
                             <option value="Personal/Other">Personal/Other</option>
                         </select>
                     </div>
+                    <div class="col-md-8">
+                        <label for="assignmentname" class="form-label">Assignment Name</label>
+                        <input type="text" id="assignmentname" name="assignmentname" class="form-control" placeholder="e.g., Homework 3" required>
+                    </div>
                     <div class="col-md-4">
                         <label for="duedate" class="form-label">Due Date</label>
                         <input type="date" id="duedate" name="duedate" class="form-control" required>
                     </div>
-                    <div class="col-12 d-flex justify-content-center gap-2">
-                        <button type="submit" class="btn btn-success">Save Assignment</button>
+                    <div class="col-12 d-flex justify-content-end gap-2">
                         <button type="button" id="cancelAddAssignmentBtn" class="btn btn-outline-secondary">Cancel</button>
+                        <button type="submit" class="btn btn-success">Save Assignment</button>
                     </div>
                 </form>
             </div>
         </div>
+
+        <!-- Filters Card (hidden by default) -->
+        <div id="filtersCard" class="card mb-4 mx-auto shadow-sm" style="display: none; max-width: 800px;">
+            <div class="card-body">
+                <h5 class="card-title">Filters</h5>
+                <form action="/filter-code" method="GET" class="mb-3">
+                    <label for="classcodefilter" class="form-label">Class Code</label>
+                    <select id="classcodefilter" name="classcodefilter" class="form-select mb-2">
+                        <option value="IS 401">IS 401</option>
+                        <option value="IS 413">IS 413</option>
+                        <option value="IS 414">IS 414</option>
+                        <option value="IS 455">IS 455</option>
+                        <option value="MUSIC 312R">MUSIC 312R</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">Filter by Class</button>
+                    </div>
+                </form>
+                <form action="/filter-assigntype" method="GET">
+                    <label for="assigntypefilter" class="form-label">Assignment Type</label>
+                    <select id="assigntypefilter" name="assigntypefilter" class="form-select mb-2">
+                        <option value="Homework">Homework</option>
+                        <option value="Project">Project</option>
+                        <option value="Group">Group</option>
+                        <option value="Reading">Reading</option>
+                        <option value="Exam">Exam</option>
+                        <option value="Personal/Other">Personal/Other</option>
+                    </select>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">Filter by Type</button>
+                    </div>
+                </form>
+                <div class="d-flex justify-content-between mt-3">
+                    <button type="button" id="clearFiltersBtn" class="btn btn-outline-secondary">Clear Filters</button>
+                </div>
+            </div>
+        </div>
+
+        
 
         <div class="card mx-auto shadow-sm" style="max-width: 1100px;">
             <div class="card-body">
@@ -96,7 +138,7 @@
                                                 <input type="hidden" name="assignid" value="<%= row.assignid %>">
                                                 <input type="checkbox"
                                                     name="done"
-                                                    onchange="this.form.submit()"
+                                                    class="complete-checkbox"
                                                     <%= row.done ? 'checked' : '' %>>
                                             </form>
                                         <% } %>
@@ -118,6 +160,13 @@
             card.style.display = isHidden ? 'block' : 'none';
         });
 
+        // Toggle visibility of the filters card
+        document.getElementById('showFiltersBtn').addEventListener('click', function() {
+            const card = document.getElementById('filtersCard');
+            const isHidden = card.style.display === 'none';
+            card.style.display = isHidden ? 'block' : 'none';
+        });
+
         // Cancel button hides the card and resets the form
         document.getElementById('cancelAddAssignmentBtn').addEventListener('click', function() {
             const card = document.getElementById('addAssignmentCard');
@@ -125,6 +174,68 @@
             form.reset();
             card.style.display = 'none';
         });
+
+        // Handle completing assignments without page reload
+        (function() {
+            const showAllEl = document.getElementById('showAll');
+            const checkboxes = document.querySelectorAll('form[action="/complete"] .complete-checkbox');
+
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', async function(e) {
+                    const checkbox = e.currentTarget;
+                    const form = checkbox.closest('form');
+                    const rowEl = checkbox.closest('tr');
+                    const assignIdInput = form.querySelector('input[name="assignid"]');
+                    const assignid = assignIdInput ? assignIdInput.value : null;
+
+                    if (!assignid) return; // Safety: no ID, do nothing
+
+                    // Disable while posting to avoid double toggles
+                    checkbox.disabled = true;
+
+                    try {
+                        const params = new URLSearchParams();
+                        params.append('assignid', assignid);
+
+                        const res = await fetch('/complete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: params.toString(),
+                        });
+
+                        // On success, optionally adjust UI based on Show All state
+                        if (res.ok) {
+                            // If Show All is OFF and this got marked done, remove the row from view
+                            if (showAllEl && !showAllEl.checked && checkbox.checked && rowEl) {
+                                rowEl.remove();
+                            }
+                        } else {
+                            // Revert visual state on failure
+                            checkbox.checked = !checkbox.checked;
+                            console.error('Failed to update completion status');
+                        }
+                    } catch (err) {
+                        // Revert visual state on network error
+                        checkbox.checked = !checkbox.checked;
+                        console.error('Error updating completion:', err);
+                    } finally {
+                        checkbox.disabled = false;
+                    }
+                });
+            });
+        })();
+
+        // Clear filters button: navigate back, preserving Show All state
+        (function() {
+            const clearBtn = document.getElementById('clearFiltersBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    const showAllEl = document.getElementById('showAll');
+                    const url = (showAllEl && showAllEl.checked) ? '/?showAll=1' : '/';
+                    window.location.assign(url);
+                });
+            }
+        })();
     </script>
 
  </body>
